@@ -1,7 +1,10 @@
 #importing libraries
 import numpy as np
 import random
-import os #will help us to save the state of nn and load stored state of nn
+
+#will help us to save the state of nn and load stored state of nn
+import os
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as f #for loss functions, or activation
@@ -11,10 +14,13 @@ from torch.autograd import Variable
 
 #creating the architecture of the neural network
 class Network(nn.Module):
-     ''' input_size for number of inputs, and nb_action for number of outputs
      '''
+          input_size for number of inputs, and nb_action for number of outputs
+     '''
+
      def __init__(self, input_size, nb_action):
         super(Network, self).__init__()
+        
         #here we create a new object and define its properties like input neurons and output
         self.input_size = input_size #5
         self.nb_action = nb_action #3
@@ -24,21 +30,28 @@ class Network(nn.Module):
         self.fc1 = nn.Linear(input_size, 30) # input neurons connect to hidden layer neurons
         self.fc2 = nn.Linear(30,nb_action) #hidden layer neuron to output layer neurons
 
+
      #now to make the function for forward propogation
      def forward(self, state):
         #this will return q values for each possible action depending on inputs
         #we will use rectifier func
         x = f.relu(self.fc1(state)) #this gives us activated hidden neurons
         q_values = self.fc2(x) #we get q values or z values
+
+
         return q_values # for each action
+
 
 #implementing experience replay diff from markhov decision process
 class ReplayMemory(object):
-    '''capacity is capacity of the memory to hold no.of transition
     '''
+          capacity is capacity of the memory to hold no.of transition
+    '''
+
     def __init__(self, capacity):
         self.capacity = capacity #max no.of transitions
         self.memory = []
+
     
     def push(self,event):
         self.memory.append(event)
@@ -47,6 +60,7 @@ class ReplayMemory(object):
         if len(self.memory) > self.capacity:
             #delete the oldest event stored
             del self.memory[0]
+
     
     def sample(self, batch_size):
         #batch_size is the size of sample to be chosen randomly
@@ -57,15 +71,20 @@ class ReplayMemory(object):
         samples = zip(*random.sample(self.memory,batch_size))
         #now we need to convert the sample into a pytorch variable
         #0 mean concatinate in one dimension not two
+
         return map(lambda x: Variable(torch.cat(x,0)),samples)
 
 
 #implementing deep q learning  
 class Dqn():
-    '''the init inputs input_size and nb_actions is to initilize the network class and the gamma
-    parameter is for the discount factor mostly with a value of 0.9 and that can be altered
     '''
+          the init inputs input_size and nb_actions is to initilize the network class and the gamma
+          parameter is for the discount factor mostly with a value of 0.9 and that can be altered
+    '''
+
+    
     def __init__(self, input_size, nb_action, gamma):
+
         self.gamma = gamma
         #now we create a list called the reward window where each position contains the mean of the 100 actions from the observations for the ai
         self.reward_window = []
@@ -80,6 +99,7 @@ class Dqn():
         self.last_state = torch.Tensor(input_size).unsqueeze(0)
         self.last_action = 0 #this will give the action of rotation either [0, 20 or -20]
         self.last_reward = 0 # either 1 or 0
+
 
     #now to create a function that selects the action
     def select_action(self, state):
@@ -96,7 +116,9 @@ class Dqn():
         #the higher the number the more sure it is in choosing the action
         #the lower the temperature parameter the less sure it is in choosing action
         action = probs.multinomial(1) # multi.. picks random value
+
         return action.data[0,0] # we do this so that we dont select the fake batch
+
 
     def learn(self, batch_state, batch_next_state, batch_reward, batch_action):
         outputs = self.model(batch_state).gather(1, batch_action.unsqueeze(1)).squeeze(1)
@@ -115,6 +137,7 @@ class Dqn():
         td_loss.backward(retain_graph = True)
         #then we update the weight by the following
         self.optimizer.step()
+
 
     def update(self, reward, new_signal):
         #we update whenever we get a new state
@@ -137,15 +160,18 @@ class Dqn():
             del self.reward_window[0]
         
         return action
+
     
     def score(self):
         #returns the mean of the vals in the reward window
         #(len(self.reward_window) + 1) we are doing this so that the denominator is never zero and doesnt crash the program
         return sum(self.reward_window)/(len(self.reward_window) + 1)
+
     
     def save(self):
         torch.save({'state_dict':self.model.state_dict(),
                     'optimizer':self.optimizer.state_dict(),},'last_brain.pth')
+
     
     def load(self):
         #first to check if the file exists
